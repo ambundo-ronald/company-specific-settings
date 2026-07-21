@@ -2,9 +2,41 @@ from typing import Literal
 
 import frappe
 from frappe.translate import print_language
+from frappe.www.printview import get_html_and_style as frappe_get_html_and_style
 from frappe.www.printview import validate_print_permission
 
 from company_specific_settings.company_specific_settings.rules import resolve_print_format
+
+
+@frappe.whitelist()
+def get_html_and_style(
+    doc: str,
+    name: str | None = None,
+    print_format: str | None = None,
+    no_letterhead: bool | None = None,
+    letterhead: str | None = None,
+    trigger_print: bool = False,
+    style: str | None = None,
+    settings: str | None = None,
+):
+    """Make the configured company format authoritative in Print Preview."""
+    if isinstance(name, str):
+        document = frappe.get_doc(doc, name)
+    else:
+        document_data = frappe.parse_json(doc) if isinstance(doc, str) else doc
+        document = frappe.get_doc(document_data)
+
+    print_format = resolve_print_format(document.doctype, doc=document) or print_format
+    return frappe_get_html_and_style(
+        doc=doc,
+        name=name,
+        print_format=print_format,
+        no_letterhead=no_letterhead,
+        letterhead=letterhead,
+        trigger_print=trigger_print,
+        style=style,
+        settings=settings,
+    )
 
 
 @frappe.whitelist(allow_guest=True)

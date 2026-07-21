@@ -20,6 +20,8 @@ doc_events = {
 }
 
 override_whitelisted_methods = {
+    "frappe.www.printview.get_html_and_style":
+        "company_specific_settings.company_specific_settings.printing.get_html_and_style",
     "frappe.utils.print_format.download_pdf":
         "company_specific_settings.company_specific_settings.printing.download_pdf"
 }
