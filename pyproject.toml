@@ -14,3 +14,5 @@ dependencies = []
 line-length = 110
 target-version = "py310"
 
+[tool.bench.frappe-dependencies]
+frappe = ">=15.0.0,<17.0.0"
