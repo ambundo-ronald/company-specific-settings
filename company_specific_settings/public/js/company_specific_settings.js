@@ -66,6 +66,47 @@
 		});
 	}
 
+	function schedule_print_view_settings() {
+		let attempts = 0;
+		const apply_when_ready = async () => {
+			const route = frappe.get_route();
+			if (route[0] !== "print") return;
+
+			const doctype = route[1];
+			const docname = route.slice(2).join("/");
+			const doc = frappe.get_doc(doctype, docname);
+			const $selector = $(
+				'.print-preview-sidebar [data-fieldname="print_format"] input, ' +
+					'.print-preview-sidebar input[data-fieldname="print_format"]'
+			).first();
+
+			if (!doc || !$selector.length) {
+				attempts += 1;
+				if (attempts < 50) setTimeout(apply_when_ready, 100);
+				return;
+			}
+
+			const response = await frappe.call({
+				method: `${METHOD}.get_configuration`,
+				args: { doctype, company: doc.company || null },
+			});
+			const print_format = response.message?.print_format;
+			if (!print_format) {
+				$selector.prop("disabled", false).removeAttr("title");
+				return;
+			}
+
+			if ($selector.val() !== print_format) {
+				$selector.val(print_format).trigger("change");
+			}
+			$selector
+				.prop("disabled", true)
+				.attr("title", __("Enforced by Company Specific Rule"));
+		};
+
+		apply_when_ready();
+	}
+
 	frappe.after_ajax(() => {
 		frappe.call({
 			method: `${METHOD}.get_scoped_doctypes`,
@@ -78,4 +119,7 @@
 			},
 		});
 	});
+
+	frappe.router.on("change", schedule_print_view_settings);
+	schedule_print_view_settings();
 })();
