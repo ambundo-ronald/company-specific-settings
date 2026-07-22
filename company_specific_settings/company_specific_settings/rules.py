@@ -37,6 +37,7 @@ def get_rule(doctype: str, company: str | None) -> dict | None:
     return {
         "name": rule.name,
         "print_format": rule.print_format,
+        "letter_head": rule.letter_head,
         "fields": [
             {
                 "custom_field": row.custom_field,
@@ -55,15 +56,15 @@ def custom_fieldname(custom_field: str) -> str:
 def get_configuration(doctype: str, company: str | None = None) -> dict:
     """Return applicable values and every field scoped on this DocType."""
     if not rules_are_available():
-        return {"print_format": None, "active_fields": [], "scoped_fields": []}
+        return {"print_format": None, "letter_head": None, "active_fields": [], "scoped_fields": []}
 
     all_parents = frappe.get_all(
         RULE_DOCTYPE,
         filters={"document_type": doctype},
-        fields=["name", "company", "print_format", "enabled"],
+        fields=["name", "company", "print_format", "letter_head", "enabled"],
     )
     if not all_parents:
-        return {"print_format": None, "active_fields": [], "scoped_fields": []}
+        return {"print_format": None, "letter_head": None, "active_fields": [], "scoped_fields": []}
 
     rows = frappe.get_all(
         "Company Specific Field",
@@ -82,6 +83,7 @@ def get_configuration(doctype: str, company: str | None = None) -> dict:
     active_rule = get_rule(doctype, company) if active_parent else None
     return {
         "print_format": active_rule.get("print_format") if active_rule else None,
+        "letter_head": active_rule.get("letter_head") if active_rule else None,
         "active_fields": active_rule.get("fields", []) if active_rule else [],
         "scoped_fields": [fieldname for fieldname in scoped_fields if fieldname],
     }
@@ -98,6 +100,19 @@ def resolve_print_format(
     company = company or (get_company(doc) if doc else None)
     rule = get_rule(doctype, company)
     return rule.get("print_format") if rule else None
+
+
+def resolve_letter_head(
+    doctype: str,
+    name: str | None = None,
+    doc: Any | None = None,
+    company: str | None = None,
+) -> str | None:
+    if doc is None and name:
+        doc = frappe.get_doc(doctype, name)
+    company = company or (get_company(doc) if doc else None)
+    rule = get_rule(doctype, company)
+    return rule.get("letter_head") if rule else None
 
 
 def validate_company_fields(doc, method=None) -> None:

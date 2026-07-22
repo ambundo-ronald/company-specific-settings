@@ -75,12 +75,16 @@
 			const doctype = route[1];
 			const docname = route.slice(2).join("/");
 			const doc = frappe.get_doc(doctype, docname);
-			const $selector = $(
+			const $print_format_selector = $(
 				'.print-preview-sidebar [data-fieldname="print_format"] input, ' +
 					'.print-preview-sidebar input[data-fieldname="print_format"]'
 			).first();
+			const $letter_head_selector = $(
+				'.print-preview-sidebar [data-fieldname="letterhead"] input, ' +
+					'.print-preview-sidebar input[data-fieldname="letterhead"]'
+			).first();
 
-			if (!doc || !$selector.length) {
+			if (!doc || !$print_format_selector.length || !$letter_head_selector.length) {
 				attempts += 1;
 				if (attempts < 50) setTimeout(apply_when_ready, 100);
 				return;
@@ -90,18 +94,34 @@
 				method: `${METHOD}.get_configuration`,
 				args: { doctype, company: doc.company || null },
 			});
-			const print_format = response.message?.print_format;
-			if (!print_format) {
-				$selector.prop("disabled", false).removeAttr("title");
-				return;
+			const config = response.message || {};
+			let should_refresh = false;
+
+			if (config.print_format) {
+				if ($print_format_selector.val() !== config.print_format) {
+					$print_format_selector.val(config.print_format);
+					should_refresh = true;
+				}
+				$print_format_selector
+					.prop("disabled", true)
+					.attr("title", __("Enforced by Company Specific Rule"));
+			} else {
+				$print_format_selector.prop("disabled", false).removeAttr("title");
 			}
 
-			if ($selector.val() !== print_format) {
-				$selector.val(print_format).trigger("change");
+			if (config.letter_head) {
+				if ($letter_head_selector.val() !== config.letter_head) {
+					$letter_head_selector.val(config.letter_head);
+					should_refresh = true;
+				}
+				$letter_head_selector
+					.prop("disabled", true)
+					.attr("title", __("Enforced by Company Specific Rule"));
+			} else {
+				$letter_head_selector.prop("disabled", false).removeAttr("title");
 			}
-			$selector
-				.prop("disabled", true)
-				.attr("title", __("Enforced by Company Specific Rule"));
+
+			if (should_refresh) $print_format_selector.trigger("change");
 		};
 
 		apply_when_ready();

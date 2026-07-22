@@ -4,7 +4,10 @@ from typing import Any
 
 import frappe
 
-from company_specific_settings.company_specific_settings.rules import resolve_print_format
+from company_specific_settings.company_specific_settings.rules import (
+    resolve_letter_head,
+    resolve_print_format,
+)
 
 PRINT_ENDPOINTS = {
     "frappe.www.printview.get_html_and_style",
@@ -26,9 +29,13 @@ def apply_company_print_format() -> None:
     if not doc:
         return
 
+    company_letter_head = resolve_letter_head(doctype, doc=doc)
     company_format = resolve_print_format(doctype, doc=doc)
     if company_format:
         frappe.form_dict["format"] = company_format
+    if company_letter_head:
+        frappe.form_dict["letterhead"] = company_letter_head
+        frappe.form_dict["no_letterhead"] = 0
 
 
 def _is_print_request() -> bool:

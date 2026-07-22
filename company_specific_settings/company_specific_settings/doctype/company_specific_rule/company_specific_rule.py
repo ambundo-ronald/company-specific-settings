@@ -8,6 +8,7 @@ class CompanySpecificRule(Document):
         self._validate_unique_rule()
         self._validate_document_type()
         self._validate_print_format()
+        self._validate_letter_head()
         self._validate_fields()
 
     def on_update(self):
@@ -55,6 +56,16 @@ class CompanySpecificRule(Document):
                     frappe.bold(print_doctype),
                     frappe.bold(self.document_type),
                 )
+            )
+
+    def _validate_letter_head(self):
+        if not self.letter_head:
+            return
+        if not frappe.db.exists("Letter Head", self.letter_head) or frappe.db.get_value(
+            "Letter Head", self.letter_head, "disabled"
+        ):
+            frappe.throw(
+                _("Letter Head {0} does not exist or is disabled.").format(frappe.bold(self.letter_head))
             )
 
     def _validate_fields(self):

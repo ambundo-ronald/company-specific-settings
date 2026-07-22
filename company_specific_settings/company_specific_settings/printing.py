@@ -5,7 +5,10 @@ from frappe.translate import print_language
 from frappe.www.printview import get_html_and_style as frappe_get_html_and_style
 from frappe.www.printview import validate_print_permission
 
-from company_specific_settings.company_specific_settings.rules import resolve_print_format
+from company_specific_settings.company_specific_settings.rules import (
+    resolve_letter_head,
+    resolve_print_format,
+)
 
 
 @frappe.whitelist()
@@ -26,7 +29,11 @@ def get_html_and_style(
         document_data = frappe.parse_json(doc) if isinstance(doc, str) else doc
         document = frappe.get_doc(document_data)
 
+    company_letter_head = resolve_letter_head(document.doctype, doc=document)
     print_format = resolve_print_format(document.doctype, doc=document) or print_format
+    if company_letter_head:
+        letterhead = company_letter_head
+        no_letterhead = 0
     return frappe_get_html_and_style(
         doc=doc,
         name=name,
@@ -53,7 +60,11 @@ def download_pdf(
     """Make the configured company format authoritative for PDF downloads."""
     doc = doc or frappe.get_doc(doctype, name)
     validate_print_permission(doc)
+    company_letter_head = resolve_letter_head(doctype, doc=doc)
     format = resolve_print_format(doctype, doc=doc) or format
+    if company_letter_head:
+        letterhead = company_letter_head
+        no_letterhead = 0
 
     with print_language(language):
         pdf_file = frappe.get_print(

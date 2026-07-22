@@ -19,10 +19,14 @@ class TestPrintRequest(FrappeTestCase):
         frappe.local.request = self.original_request
 
     @patch(
+        "company_specific_settings.company_specific_settings.request.resolve_letter_head",
+        return_value="Company Letter Head",
+    )
+    @patch(
         "company_specific_settings.company_specific_settings.request.resolve_print_format",
         return_value="Company Sales Invoice",
     )
-    def test_direct_printview_replaces_global_format(self, resolver):
+    def test_direct_printview_replaces_global_format(self, format_resolver, letter_head_resolver):
         frappe.local.request = SimpleNamespace(path="/printview")
         frappe.local.form_dict = frappe._dict(
             {
@@ -42,13 +46,20 @@ class TestPrintRequest(FrappeTestCase):
         apply_company_print_format()
 
         self.assertEqual(frappe.form_dict.format, "Company Sales Invoice")
-        resolver.assert_called_once()
+        self.assertEqual(frappe.form_dict.letterhead, "Company Letter Head")
+        self.assertEqual(frappe.form_dict.no_letterhead, 0)
+        format_resolver.assert_called_once()
+        letter_head_resolver.assert_called_once()
 
+    @patch(
+        "company_specific_settings.company_specific_settings.request.resolve_letter_head",
+        return_value=None,
+    )
     @patch(
         "company_specific_settings.company_specific_settings.request.resolve_print_format",
         return_value=None,
     )
-    def test_route_keeps_original_when_company_has_no_format(self, resolver):
+    def test_route_keeps_original_when_company_has_no_format(self, format_resolver, letter_head_resolver):
         frappe.local.request = SimpleNamespace(path="/printview")
         frappe.local.form_dict = frappe._dict(
             {
@@ -62,5 +73,6 @@ class TestPrintRequest(FrappeTestCase):
         apply_company_print_format()
 
         self.assertEqual(frappe.form_dict.format, "Global Sales Invoice")
-        resolver.assert_called_once()
+        format_resolver.assert_called_once()
+        letter_head_resolver.assert_called_once()
 
